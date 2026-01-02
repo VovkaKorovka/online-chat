@@ -1,27 +1,24 @@
 const express = require("express");
 const http = require("http");
 const WebSocket = require("ws");
-const path = require("path");
 
 const app = express();
-app.use(express.static(path.join(__dirname, "public")));
+app.use(express.static("public"));
 
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
-let userCount = 0;
-
-function broadcast(data, exclude) {
+function broadcast(data) {
     wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN && client !== exclude) {
+        if (client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify(data));
         }
     });
 }
 
 wss.on("connection", (ws) => {
-    userCount++;
-    ws.userName = `Особа-${userCount}`;
+    // Ім’я від клієнта або fallback
+    ws.userName = ws.initialName || `Особа-${wss.clients.size+1}`;
 
     ws.send(JSON.stringify({
         type: "init",
@@ -33,12 +30,15 @@ wss.on("connection", (ws) => {
         type: "system",
         text: `${ws.userName} підключився`,
         online: wss.clients.size
-    }, ws);
+    });
+
+    ws.isTyping = false;
 
     ws.on("message", (data) => {
         const msg = JSON.parse(data.toString());
 
-        if (msg.type === "chat") {
+        if(msg.type === "chat") {
+            ws.isTyping = false;
             broadcast({
                 type: "chat",
                 user: ws.userName,
@@ -46,11 +46,12 @@ wss.on("connection", (ws) => {
             });
         }
 
-        if (msg.type === "typing") {
+        if(msg.type === "typing") {
+            ws.isTyping = true;
             broadcast({
                 type: "typing",
                 user: ws.userName
-            }, ws);
+            });
         }
     });
 
@@ -58,7 +59,12 @@ wss.on("connection", (ws) => {
         broadcast({
             type: "system",
             text: `${ws.userName} вийшов`,
-            online: wss.clients.size
+            online: wss.clients.size - 1
+        });
+
+        broadcast({
+            type: "removeTyping",
+            user: ws.userName
         });
     });
 });

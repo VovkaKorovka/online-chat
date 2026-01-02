@@ -109,20 +109,24 @@ body {
 </div>
 
 <script>
+// Попросимо ім'я користувача або назву ПК
+let userName = prompt("Введіть ваше ім'я або назву ПК:", "Мій ПК");
+
 const chat = document.getElementById("chat");
 const status = document.getElementById("status");
 const msgInput = document.getElementById("msg");
 const sendBtn = document.getElementById("send");
 
 const ws = new WebSocket(`wss://${window.location.host}`);
-let userName = "";
+// передаємо ім'я на сервер
+ws.initialName = userName;
+
 let typingUsers = new Set();
 
 ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
 
     if(msg.type === "init") {
-        userName = msg.user;
         status.textContent = `Онлайн: ${msg.online}`;
     }
 
@@ -134,8 +138,6 @@ ws.onmessage = (event) => {
     if(msg.type === "chat") {
         const cls = msg.user === userName ? "self" : "other";
         addMessage(`${msg.user}: ${msg.text}`, cls);
-
-        // прибираємо користувача з typing
         typingUsers.delete(msg.user);
         updateTyping();
     }
@@ -145,6 +147,11 @@ ws.onmessage = (event) => {
             typingUsers.add(msg.user);
             updateTyping();
         }
+    }
+
+    if(msg.type === "removeTyping") {
+        typingUsers.delete(msg.user);
+        updateTyping();
     }
 };
 
