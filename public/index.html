@@ -109,24 +109,21 @@ body {
 </div>
 
 <script>
-// Ім'я користувача з localStorage або prompt
-let userName = localStorage.getItem("chatName") || prompt("Введіть ваше ім'я або назву ПК:", "Мій ПК");
-localStorage.setItem("chatName", userName);
-
 const chat = document.getElementById("chat");
 const status = document.getElementById("status");
 const msgInput = document.getElementById("msg");
 const sendBtn = document.getElementById("send");
 
-const ws = new WebSocket(`wss://${window.location.host}`);
-ws.initialName = userName;
+const ws = new WebSocket(`ws://${window.location.host}`);
 
+let userName = "";
 let typingUsers = new Set();
 
 ws.onmessage = (event) => {
     const msg = JSON.parse(event.data);
 
     if(msg.type === "init") {
+        userName = msg.user;
         status.textContent = `Онлайн: ${msg.online}`;
     }
 
@@ -165,6 +162,7 @@ function addMessage(text, cls) {
 
 function updateTyping() {
     if(typingUsers.size === 0) {
+        // якщо нема тих хто пише, показуємо кількість онлайн
         status.textContent = `Онлайн: ${ws ? "?" : 0}`;
     } else {
         const names = Array.from(typingUsers).join(", ");
@@ -188,4 +186,3 @@ msgInput.addEventListener("keydown", (e) => {
 
 </body>
 </html>
-

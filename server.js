@@ -8,6 +8,8 @@ app.use(express.static("public"));
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
+let userCount = 0;
+
 function broadcast(data) {
     wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
@@ -17,11 +19,10 @@ function broadcast(data) {
 }
 
 wss.on("connection", (ws) => {
-    // ім'я береться з клієнта або fallback
-    ws.userName = ws.initialName || `Особа-${wss.clients.size+1}`;
+    userCount++;
+    ws.userName = `Особа-${userCount}`;
     ws.isTyping = false;
 
-    // відправляємо підключеному користувачу його ім'я та кількість онлайн
     ws.send(JSON.stringify({
         type: "init",
         user: ws.userName,
