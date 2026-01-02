@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Онлайн чат</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f1f1f1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .chat-box {
+            width: 360px;
+            height: 500px;
+            background: #fff;
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 0 10px rgba(0,0,0,0.15);
+        }
+
+        .chat-header {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            background: #fafafa;
+        }
+
+        #chat {
+            flex: 1;
+            list-style: none;
+            padding: 10px;
+            margin: 0;
+            overflow-y: auto;
+        }
+
+        #chat li {
+            margin-bottom: 8px;
+            padding: 6px 8px;
+            background: #f4f4f4;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .system {
+            background: none !important;
+            color: #777;
+            font-style: italic;
+            text-align: center;
+        }
+
+        #typing {
+            font-size: 12px;
+            color: #666;
+            padding: 5px 10px;
+            height: 18px;
+        }
+
+        .chat-input {
+            display: flex;
+            border-top: 1px solid #ddd;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            outline: none;
+        }
+
+        .chat-input button {
+            padding: 10px 15px;
+            border: none;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="chat-box">
+    <div class="chat-header">
+        <div id="me">Ви: ...</div>
+        <small id="online">Онлайн: 0</small>
+    </div>
+
+    <ul id="chat"></ul>
+    <div id="typing"></div>
+
+    <div class="chat-input">
+        <input id="msg" placeholder="Введіть повідомлення">
+        <button onclick="send()">➤</button>
+    </div>
+</div>
+
+<script>
+    const ws = new WebSocket(`ws://${location.host}`);
+    let myName = "";
+    let typingTimer;
+
+    function scrollDown() {
+        const chat = document.getElementById("chat");
+        chat.scrollTop = chat.scrollHeight;
+    }
+
+    function colorFor(name) {
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+            hash += name.charCodeAt(i);
+        }
+        return `hsl(${hash % 360}, 70%, 45%)`;
+    }
+
+    ws.onmessage = (e) => {
+        const data = JSON.parse(e.data);
+        const chat = document.getElementById("chat");
+
+        if (data.type === "init") {
+            myName = data.user;
+            document.getElementById("me").textContent = "Ви: " + myName;
+            document.getElementById("online").textContent = "Онлайн: " + data.online;
+        }
+
+        if (data.type === "system") {
+            const li = document.createElement("li");
+            li.textContent = data.text;
+            li.className = "system";
+            chat.appendChild(li);
+            scrollDown();
+
+            if (data.online !== undefined) {
+                document.getElementById("online").textContent = "Онлайн: " + data.online;
+            }
+        }
+
+        if (data.type === "chat") {
+            const li = document.createElement("li");
+            li.innerHTML = `<strong style="color:${colorFor(data.user)}">
+                ${data.user}
+            </strong>: ${data.text}`;
+            chat.appendChild(li);
+            document.getElementById("typing").textContent = "";
+            scrollDown();
+        }
+
+        if (data.type === "typing" && data.user !== myName) {
+            document.getElementById("typing").textContent =
+                `${data.user} пише...`;
+
+            clearTimeout(typingTimer);
+            typingTimer = setTimeout(() => {
+                document.getElementById("typing").textContent = "";
+            }, 1000);
+        }
+    };
+
+    function send() {
+        const input = document.getElementById("msg");
+        if (!input.value.trim()) return;
+
+        ws.send(JSON.stringify({
+            type: "chat",
+            text: input.value
+        }));
+
+        input.value = "";
+    }
+
+    // ENTER для відправки + "пише..."
+    const input = document.getElementById("msg");
+    input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            send();
+        } else {
+            ws.send(JSON.stringify({ type: "typing" }));
+        }
+    });
+</script>
+
+</body>
+</html>
