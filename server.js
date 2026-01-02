@@ -21,7 +21,6 @@ function broadcast(data) {
 wss.on("connection", (ws) => {
     userCount++;
     ws.userName = `Особа-${userCount}`;
-    ws.isTyping = false;
 
     ws.send(JSON.stringify({
         type: "init",
@@ -39,7 +38,6 @@ wss.on("connection", (ws) => {
         const msg = JSON.parse(data.toString());
 
         if (msg.type === "chat") {
-            ws.isTyping = false;
             broadcast({
                 type: "chat",
                 user: ws.userName,
@@ -48,7 +46,6 @@ wss.on("connection", (ws) => {
         }
 
         if (msg.type === "typing") {
-            ws.isTyping = true;
             broadcast({
                 type: "typing",
                 user: ws.userName
@@ -61,11 +58,6 @@ wss.on("connection", (ws) => {
             type: "system",
             text: `${ws.userName} вийшов`,
             online: wss.clients.size - 1
-        });
-
-        broadcast({
-            type: "removeTyping",
-            user: ws.userName
         });
     });
 });
