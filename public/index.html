@@ -107,14 +107,12 @@
         ws.onmessage = (event) => {
             const msg = JSON.parse(event.data);
 
-            // Ініціалізація
             if(msg.type === "init") {
                 userName = msg.user;
                 onlineUsers = msg.onlineUsers || [];
                 updateOnlineList();
             }
 
-            // Системні повідомлення (підключення / вихід)
             if(msg.type === "system") {
                 const div = document.createElement("div");
                 div.className = "message system";
@@ -126,7 +124,6 @@
                 chat.scrollTop = chat.scrollHeight;
             }
 
-            // Повідомлення від користувачів
             if(msg.type === "chat") {
                 const div = document.createElement("div");
                 div.className = "message";
@@ -136,7 +133,6 @@
                 chat.scrollTop = chat.scrollHeight;
             }
 
-            // Пише...
             if(msg.type === "typing") {
                 typingStatus.textContent = `${msg.user} пише...`;
                 setTimeout(() => {

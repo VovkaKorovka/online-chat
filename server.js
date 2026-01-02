@@ -10,7 +10,7 @@ const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 let userCount = 0;
-let onlineUsers = []; // масив для імен користувачів
+let onlineUsers = [];
 
 function broadcast(data, exclude) {
     wss.clients.forEach(client => {
@@ -20,9 +20,8 @@ function broadcast(data, exclude) {
     });
 }
 
-// Функція для оновлення всіх онлайн
 function updateOnline() {
-    const list = onlineUsers.slice(); // копія
+    const list = onlineUsers.slice();
     wss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
             client.send(JSON.stringify({
@@ -34,25 +33,28 @@ function updateOnline() {
 }
 
 wss.on("connection", (ws) => {
+
+    if (wss.clients.size === 0) {
+        userCount = 0;
+        onlineUsers = [];
+    }
+
     userCount++;
     ws.userName = `Особа-${userCount}`;
     onlineUsers.push(ws.userName);
 
-    // Надсилаємо info самому клієнту
     ws.send(JSON.stringify({
         type: "init",
         user: ws.userName,
         onlineUsers: onlineUsers
     }));
 
-    // Сповіщаємо всіх про нове підключення
     broadcast({
         type: "system",
         text: `${ws.userName} підключився`,
         onlineUsers: onlineUsers
     }, ws);
 
-    // Оновлюємо список онлайн всім
     updateOnline();
 
     ws.on("message", (data) => {
@@ -75,7 +77,6 @@ wss.on("connection", (ws) => {
     });
 
     ws.on("close", () => {
-        // видаляємо з onlineUsers
         onlineUsers = onlineUsers.filter(u => u !== ws.userName);
 
         broadcast({
@@ -85,6 +86,11 @@ wss.on("connection", (ws) => {
         });
 
         updateOnline();
+
+        if (wss.clients.size === 0) {
+            userCount = 0;
+            onlineUsers = [];
+        }
     });
 });
 
