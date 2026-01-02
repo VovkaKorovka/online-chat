@@ -62,6 +62,8 @@ wss.on("connection", (ws) => {
     });
 });
 
-server.listen(3000, () => {
-    console.log("Сервер працює: http://localhost:3000");
+// ⚡ Виправлений порт для Railway
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+    console.log(`Сервер працює на порту ${PORT}`);
 });
