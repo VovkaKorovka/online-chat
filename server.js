@@ -17,9 +17,11 @@ function broadcast(data) {
 }
 
 wss.on("connection", (ws) => {
-    // Ім’я від клієнта або fallback
+    // ім'я береться з клієнта або fallback
     ws.userName = ws.initialName || `Особа-${wss.clients.size+1}`;
+    ws.isTyping = false;
 
+    // відправляємо підключеному користувачу його ім'я та кількість онлайн
     ws.send(JSON.stringify({
         type: "init",
         user: ws.userName,
@@ -32,12 +34,10 @@ wss.on("connection", (ws) => {
         online: wss.clients.size
     });
 
-    ws.isTyping = false;
-
     ws.on("message", (data) => {
         const msg = JSON.parse(data.toString());
 
-        if(msg.type === "chat") {
+        if (msg.type === "chat") {
             ws.isTyping = false;
             broadcast({
                 type: "chat",
@@ -46,7 +46,7 @@ wss.on("connection", (ws) => {
             });
         }
 
-        if(msg.type === "typing") {
+        if (msg.type === "typing") {
             ws.isTyping = true;
             broadcast({
                 type: "typing",
