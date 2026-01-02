@@ -14,18 +14,23 @@
             background-color:#121212;
             color:#e0e0e0;
         }
+        #online-list {
+            padding:10px;
+            border-bottom:1px solid #333;
+            background-color:#1e1e1e;
+        }
         #chat {
             flex:1;
             overflow-y:auto;
             padding:10px;
-            border-bottom:1px solid #333;
             display:flex;
             flex-direction:column;
         }
-        #status {
-            font-size: 0.9em;
-            color:#aaa;
-            padding:5px;
+        #typing-status {
+            font-size:0.9em;
+            color:#888;
+            padding:5px 10px;
+            height:18px;
         }
         #input {
             display:flex;
@@ -75,15 +80,12 @@
             text-align:center;
             align-self:center;
         }
-        .typing {
-            font-size:0.8em;
-            color: #888;
-        }
     </style>
 </head>
 <body>
+    <div id="online-list">Онлайн: ...</div>
     <div id="chat"></div>
-    <div id="status">Онлайн: 0</div>
+    <div id="typing-status"></div>
     <div id="input">
         <input type="text" id="msg" placeholder="Напиши повідомлення...">
         <button id="send">Відправити</button>
@@ -91,49 +93,64 @@
 
     <script>
         const chat = document.getElementById("chat");
-        const status = document.getElementById("status");
+        const onlineList = document.getElementById("online-list");
+        const typingStatus = document.getElementById("typing-status");
         const msgInput = document.getElementById("msg");
         const sendBtn = document.getElementById("send");
 
         const ws = new WebSocket(`wss://${window.location.host}`);
         let userName = "";
+        let onlineUsers = [];
 
         ws.onopen = () => console.log("Підключено до сервера");
 
         ws.onmessage = (event) => {
             const msg = JSON.parse(event.data);
 
+            // Ініціалізація
             if(msg.type === "init") {
                 userName = msg.user;
-                status.textContent = `Онлайн: ${msg.online}`;
+                onlineUsers = msg.onlineUsers || [];
+                updateOnlineList();
             }
 
+            // Системні повідомлення (підключення / вихід)
             if(msg.type === "system") {
                 const div = document.createElement("div");
                 div.className = "message system";
                 div.textContent = msg.text;
                 chat.appendChild(div);
-                status.textContent = `Онлайн: ${msg.online}`;
+
+                onlineUsers = msg.onlineUsers || onlineUsers;
+                updateOnlineList();
                 chat.scrollTop = chat.scrollHeight;
             }
 
+            // Повідомлення від користувачів
             if(msg.type === "chat") {
                 const div = document.createElement("div");
                 div.className = "message";
                 div.textContent = `${msg.user}: ${msg.text}`;
-                if(msg.user === userName) div.classList.add("mine");
-                else div.classList.add("other");
+                div.classList.add(msg.user === userName ? "mine" : "other");
                 chat.appendChild(div);
                 chat.scrollTop = chat.scrollHeight;
             }
 
+            // Пише...
             if(msg.type === "typing") {
-                status.textContent = `${msg.user} пише...`;
+                typingStatus.textContent = `${msg.user} пише...`;
                 setTimeout(() => {
-                    status.textContent = `Онлайн: ${msg.online || "?"}`;
+                    typingStatus.textContent = "";
                 }, 1000);
             }
         };
+
+        function updateOnlineList() {
+            const names = onlineUsers.includes(userName) 
+                ? onlineUsers.map(n => n === userName ? "Ви" : n)
+                : ["Ви", ...onlineUsers];
+            onlineList.textContent = `Чат із: ${names.join(", ")}`;
+        }
 
         function sendMessage() {
             const text = msgInput.value.trim();
