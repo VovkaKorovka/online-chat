@@ -1,18 +1,19 @@
 const express = require("express");
 const http = require("http");
 const WebSocket = require("ws");
+const path = require("path");
 
 const app = express();
-app.use(express.static("public"));
+app.use(express.static(path.join(__dirname, "public")));
 
 const server = http.createServer(app);
 const wss = new WebSocket.Server({ server });
 
 let userCount = 0;
 
-function broadcast(data) {
+function broadcast(data, exclude) {
     wss.clients.forEach(client => {
-        if (client.readyState === WebSocket.OPEN) {
+        if (client.readyState === WebSocket.OPEN && client !== exclude) {
             client.send(JSON.stringify(data));
         }
     });
@@ -22,17 +23,19 @@ wss.on("connection", (ws) => {
     userCount++;
     ws.userName = `Особа-${userCount}`;
 
+    // Надсилаємо інформацію самому клієнту
     ws.send(JSON.stringify({
         type: "init",
         user: ws.userName,
         online: wss.clients.size
     }));
 
+    // Сповіщаємо всіх про нове підключення
     broadcast({
         type: "system",
         text: `${ws.userName} підключився`,
         online: wss.clients.size
-    });
+    }, ws);
 
     ws.on("message", (data) => {
         const msg = JSON.parse(data.toString());
@@ -49,7 +52,7 @@ wss.on("connection", (ws) => {
             broadcast({
                 type: "typing",
                 user: ws.userName
-            });
+            }, ws);
         }
     });
 
@@ -57,7 +60,7 @@ wss.on("connection", (ws) => {
         broadcast({
             type: "system",
             text: `${ws.userName} вийшов`,
-            online: wss.clients.size - 1
+            online: wss.clients.size
         });
     });
 });

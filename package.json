@@ -8,8 +8,5 @@
   "dependencies": {
     "express": "^5.2.1",
     "ws": "^8.18.3"
-  },
-  "description": "Online chat with WebSocket",
-  "author": "VovkaKorovka",
-  "license": "ISC"
+  }
 }
