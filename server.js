@@ -23,14 +23,12 @@ wss.on("connection", (ws) => {
     userCount++;
     ws.userName = `Особа-${userCount}`;
 
-    // Надсилаємо інформацію самому клієнту
     ws.send(JSON.stringify({
         type: "init",
         user: ws.userName,
         online: wss.clients.size
     }));
 
-    // Сповіщаємо всіх про нове підключення
     broadcast({
         type: "system",
         text: `${ws.userName} підключився`,
